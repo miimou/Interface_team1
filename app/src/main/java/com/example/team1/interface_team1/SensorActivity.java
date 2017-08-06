@@ -4,42 +4,43 @@ package com.example.team1.interface_team1;
         import android.hardware.SensorEvent;
         import android.hardware.SensorEventListener;
         import android.hardware.SensorManager;
+        import android.os.Handler;
+        import android.os.Looper;
         import android.support.v7.app.AppCompatActivity;
         import android.os.Bundle;
         import android.util.Log;
+        import android.view.MotionEvent;
+        import android.view.View;
         import android.widget.TextView;
         import java.util.List;
         import android.view.SurfaceView;
 
 
 public class SensorActivity extends AppCompatActivity implements SensorEventListener{
-
     private SensorManager mSensorManager;
-    private TextView values;
-    private SurfaceView surfaceView;
+    private ScreenDrawer sd;
     private int stepcount = 0;
     private int stepcount2 = 0;
-
-    private TextView textview;
-    private TextView textview2;
+    private int score = 0;
 
     // センサーの値
     float[] magneticValues  = null;
+
+    private enum GameState {
+        TOP,
+        TOP_ACCEPTABLE,
+        IN_GAME,
+        GAME_OVER
+    }
+    GameState state = GameState.TOP;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensor);
 
-        //テキスト
-        values = (TextView) findViewById(R.id.text_view);
-        textview = (TextView)findViewById(R.id.text_view2);
-        textview2 = (TextView)findViewById(R.id.text_view3);
-
-        textview.setText("STEP_DETECTOR=");
-        textview2.setText("STEP_COUNTER=");
         //ゲーム画面
-        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+        sd = new ScreenDrawer((SurfaceView) findViewById(R.id.surfaceView), this);
 
         //センサー・マネージャーを取得する
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -49,7 +50,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     //アプリが起動する時
     @Override
     protected void onStart() {
-
         super.onStart();
         super.onResume();
 
@@ -97,6 +97,26 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     float[] accelerometerValues = new float[3];
     float step[];
 
+    View.OnTouchListener startTouch = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            state = GameState.IN_GAME;
+            sd.setStatus(ScreenDrawer.ScreenStatus.IN_GAME);
+            sd.setOnTouchListener(null);
+            return true;
+        }
+    };
+
+    View.OnTouchListener resetTouch = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            state = GameState.TOP;
+            sd.setStatus(ScreenDrawer.ScreenStatus.TOP);
+            sd.setScore(score = 0);
+            return true;
+        }
+    };
+
     //センサーの値が変更された時に呼び出される
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -112,14 +132,22 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 // 今までの歩数
                 Log.d("type_step_counter", String.valueOf(event.values[0]));
                 stepcount2++;
-                textview2.setText("STEP_COUNTER=" + stepcount2 + "歩");
                 break;
             case Sensor.TYPE_STEP_DETECTOR:
                 // ステップを検知した場合にアクセス
                 Log.d("type_detector_counter", String.valueOf(event.values[0]));
                 stepcount++;
-                textview.setText("STEP_DETECTOR=" + stepcount + "歩");
                 break;
+        }
+
+        if (Sensor.TYPE_STEP_DETECTOR == event.sensor.getType()) {
+            if (state == GameState.IN_GAME) {
+                sd.setScore(score++);
+            }
+        }
+
+        if (state == GameState.IN_GAME) {
+            sd.setScore(score++);
         }
 
         if (magneticValues != null && accelerometerValues != null) {
@@ -134,11 +162,11 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             float[] orientationValues   = new float[3];
             SensorManager.getOrientation(outR, orientationValues);//値を得る
 
-            /** debug用
+            /* debug用
              * x:方位角
              * y:前後の傾斜
              * z:左右の傾斜
-             **/
+             */
             //計算クラスを呼び出す
             Calc calc = new Calc(radianToDegree(orientationValues[0]),radianToDegree(orientationValues[1]),radianToDegree(orientationValues[2]));
             //ここで,溢れる方向を得る
@@ -146,23 +174,26 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             //ここで,溢れる量を得る
             int amount = calc.getAmount();
 
-
-
-            //ここで画像をはる処理を行う
-            MySurfaceView canvas = new MySurfaceView(this,surfaceView,direction,amount);
-            canvas.surfaceCreated(canvas.mholder);
-
-            String r =      "--------------------------------\n" +
-                    "3-axis Magnetic field sensor\n"+
-                    "--------------------------------\n" +
-                    "x-axis :" + radianToDegree(orientationValues[0]) + "\n" +
-                    "y-axis :" + radianToDegree(orientationValues[1]) + "\n" +
-                    "z-axis :" + radianToDegree(orientationValues[2]) + "\n" +
-                    "direction :" + direction + "\n" +
-                    "amount :" + amount + "\n" ;
-
-            values.setText(r);
-
+            sd.setBowl(direction, amount);
+            if (state == GameState.TOP) {
+                if (amount == 0) {
+                    state = GameState.TOP_ACCEPTABLE;
+                    sd.setStatus(ScreenDrawer.ScreenStatus.TOP_START_ACCEPT);
+                    sd.setOnTouchListener(startTouch);
+                }
+            } else if (state == GameState.TOP_ACCEPTABLE) {
+                if (amount != 0) {
+                    state = GameState.TOP;
+                    sd.setStatus(ScreenDrawer.ScreenStatus.TOP);
+                    sd.setOnTouchListener(null);
+                }
+            } else if (state == GameState.IN_GAME) {
+                if (amount == 3) {
+                    state = GameState.GAME_OVER;
+                    sd.setStatus(ScreenDrawer.ScreenStatus.GAME_OVER);
+                    sd.setOnTouchListener(resetTouch);
+                }
+            }
         }
     }
 
