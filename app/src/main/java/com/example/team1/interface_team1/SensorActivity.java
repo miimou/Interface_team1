@@ -46,6 +46,9 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
         //センサー・マネージャーを取得する
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+
+        detector = new AccelerometerStepDetector();
+        detector.setOnStep(onStep);
     }
 
 

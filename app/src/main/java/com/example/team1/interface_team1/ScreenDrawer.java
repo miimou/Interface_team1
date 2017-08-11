@@ -2,13 +2,11 @@ package com.example.team1.interface_team1;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -108,7 +106,6 @@ class ScreenDrawer implements SurfaceHolder.Callback {
             } else {
                 gameOverSprite.setBounds(0, (int)(cHeight-cWidth*gAspect)/2, cWidth, (int)(cHeight+cWidth*gAspect)/2);
             }
-            Log.d("ScreenDrawer", "drawScreen: "+ cAspect +"/"+ gAspect + "(" + gHeight + "," + gWidth);
             gameOverSprite.draw(c);
             c.drawText("タップしてスタート画面へ", cWidth/2, cHeight-textPaint.descent(), textPaint);
         }
