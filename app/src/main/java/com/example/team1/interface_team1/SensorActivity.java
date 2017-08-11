@@ -4,14 +4,11 @@ package com.example.team1.interface_team1;
         import android.hardware.SensorEvent;
         import android.hardware.SensorEventListener;
         import android.hardware.SensorManager;
-        import android.os.Handler;
-        import android.os.Looper;
         import android.support.v7.app.AppCompatActivity;
         import android.os.Bundle;
-        import android.util.Log;
         import android.view.MotionEvent;
         import android.view.View;
-        import android.widget.TextView;
+
         import java.util.List;
         import android.view.SurfaceView;
 
@@ -19,8 +16,6 @@ package com.example.team1.interface_team1;
 public class SensorActivity extends AppCompatActivity implements SensorEventListener{
     private SensorManager mSensorManager;
     private ScreenDrawer sd;
-    private int stepcount = 0;
-    private int stepcount2 = 0;
     private AccelerometerStepDetector detector;
     Runnable onStep;
     private int score = 0;
@@ -54,8 +49,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
     //アプリが起動する時
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
         super.onResume();
 
         //全センサーの取得
@@ -77,18 +71,14 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     }
 
     //アプリ終了時
-    protected void onStop(){
-
-        super.onStop();
+    protected void onPause(){
         super.onPause();
 
-        mSensorManager.unregisterListener( this );
-
+        mSensorManager.unregisterListener(this);
     }
 
-
     // 回転行列
-    float[]    I= new float[9];
+    float[] I= new float[9];
     float[] accelerometerValues = new float[3];
     float step[];
 
@@ -189,8 +179,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             }
         }
     }
-
-
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
