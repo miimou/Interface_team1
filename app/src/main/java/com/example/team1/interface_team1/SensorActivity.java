@@ -21,6 +21,8 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     private ScreenDrawer sd;
     private int stepcount = 0;
     private int stepcount2 = 0;
+    private AccelerometerStepDetector detector;
+    Runnable onStep;
     private int score = 0;
 
     // センサーの値
@@ -68,16 +70,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI);
             }
-
-            if(sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
-                mSensorManager.registerListener(this, sensor,SensorManager.SENSOR_DELAY_NORMAL);
-            }
-
-            if(sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
-                mSensorManager.registerListener(this, sensor,SensorManager.SENSOR_DELAY_NORMAL);
-            }
-
-
         }
     }
 
@@ -117,6 +109,22 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         }
     };
 
+    {
+        onStep = new Runnable() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (state == GameState.IN_GAME) {
+                            sd.setScore(score++);
+                        }
+                    }
+                });
+            }
+        };
+    }
+
     //センサーの値が変更された時に呼び出される
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -128,26 +136,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             case Sensor.TYPE_MAGNETIC_FIELD:
                 magneticValues = event.values.clone();
                 break;
-            case Sensor.TYPE_STEP_COUNTER:
-                // 今までの歩数
-                Log.d("type_step_counter", String.valueOf(event.values[0]));
-                stepcount2++;
-                break;
-            case Sensor.TYPE_STEP_DETECTOR:
-                // ステップを検知した場合にアクセス
-                Log.d("type_detector_counter", String.valueOf(event.values[0]));
-                stepcount++;
-                break;
-        }
-
-        if (Sensor.TYPE_STEP_DETECTOR == event.sensor.getType()) {
-            if (state == GameState.IN_GAME) {
-                sd.setScore(score++);
-            }
-        }
-
-        if (state == GameState.IN_GAME) {
-            sd.setScore(score++);
         }
 
         if (magneticValues != null && accelerometerValues != null) {
@@ -161,6 +149,8 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
             float[] orientationValues   = new float[3];
             SensorManager.getOrientation(outR, orientationValues);//値を得る
+
+            detector.updateAcceleration(event.timestamp, accelerometerValues[0], accelerometerValues[1], accelerometerValues[2]);
 
             /* debug用
              * x:方位角
